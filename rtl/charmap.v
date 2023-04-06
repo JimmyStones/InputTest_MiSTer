@@ -28,8 +28,10 @@ module charmap (
 	input	[7:0] chrom_data_out,
 	input	[7:0] fgcolram_data_out,
 	input	[7:0] bgcolram_data_out,
+	input	[23:0] charpaletteram_data_out,
 	input	[7:0] chmap_data_out,
     output	[11:0] chram_addr,
+	output	[7:0] charpaletteram_addr_rd,
     output	[11:0] chrom_addr,
 	output	[7:0] r,
 	output	[7:0] g,
@@ -46,14 +48,12 @@ assign chram_addr = {chram_y, chram_x};
 assign chrom_addr = {1'b0, chmap_data_out[7:0], chpos_y};
 wire char_a = chrom_data_out[chpos_x[2:0]];
 
-wire [2:0] r_temp = char_a ? fgcolram_data_out[2:0] : bgcolram_data_out[2:0];
-wire [2:0] g_temp = char_a ? fgcolram_data_out[5:3] : bgcolram_data_out[5:3];
-wire [1:0] b_temp = char_a ? fgcolram_data_out[7:6] : bgcolram_data_out[7:6];
+wire [7:0] palette_index = char_a ? fgcolram_data_out : bgcolram_data_out;
+assign charpaletteram_addr_rd = { palette_index };
 
-assign a = char_a ? char_a : (bgcolram_data_out != 8'b11000111);
-
-assign r = {{2{r_temp}},2'b0};
-assign g = {{2{g_temp}},2'b0};
-assign b = {{3{b_temp}},2'b0};
+assign r = charpaletteram_data_out[7:0];
+assign g = charpaletteram_data_out[15:8];
+assign b = charpaletteram_data_out[23:16];
+assign a = char_a ? char_a : (bgcolram_data_out != 8'hFF);
 
 endmodule

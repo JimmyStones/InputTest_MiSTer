@@ -53,6 +53,59 @@ void clear_bgcolor(char color)
 	}
 }
 
+// Set character palette entry
+void set_char_palette(unsigned char index, unsigned char r, unsigned char g, unsigned char b)
+{
+	unsigned short p = index * 4;
+	charpaletteram[p] = r;
+	charpaletteram[p + 1] = g;
+	charpaletteram[p + 2] = b;
+}
+
+void set_default_char_palette()
+{
+	set_char_palette(0, 0, 0, 0);
+	set_char_palette(1, 0, 0, 170);
+	set_char_palette(2, 0, 170, 0);
+	set_char_palette(3, 0, 170, 170);
+	set_char_palette(4, 170, 0, 0);
+	set_char_palette(5, 170, 0, 170);
+	set_char_palette(6, 170, 85, 0);
+	set_char_palette(7, 170, 170, 170);
+	set_char_palette(8, 85, 85, 85);
+	set_char_palette(9, 85, 85, 255);
+	set_char_palette(10, 85, 255, 85);
+	set_char_palette(11, 85, 255, 255);
+	set_char_palette(12, 255, 85, 85);
+	set_char_palette(13, 255, 85, 255);
+	set_char_palette(14, 255, 255, 85);
+	set_char_palette(15, 255, 255, 255);
+}
+
+// char log[20][30];
+unsigned char log_index = 0;
+void write_log_uchar(const char *format, unsigned char data)
+{
+	unsigned short p = (log_index * chram_cols);
+	char temp[30];
+	sprintf(temp, format, data);
+	unsigned char l = strlen(temp);
+	for (char c = 0; c < l; c++)
+	{
+		if (temp[c] == 0)
+		{
+			return;
+		}
+		chram[p] = temp[c];
+		p++;
+	}
+	log_index++;
+	if (log_index > 21)
+	{
+		log_index = 0;
+	}
+}
+
 // Write string to character RAM
 void write_string(const char *string, char color, unsigned char x, unsigned char y)
 {

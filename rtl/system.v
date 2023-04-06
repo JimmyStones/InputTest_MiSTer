@@ -27,7 +27,7 @@ module system (
 	input			reset,
 	input			pause,
 	input			menu, 			// Active-high trigger to open menu in system
-	input [16:0]	dn_addr,
+	input [23:0]	dn_addr,
 	input			dn_wr,
 	input [7:0]		dn_data,
 	input [7:0]		dn_index,
@@ -69,8 +69,10 @@ module system (
 	output	[15:0]	AUDIO_R
 );
 
-localparam [8:0] VGA_WIDTH = 9'd320;
-localparam [8:0] VGA_HEIGHT = 9'd240;
+localparam [8:0] VGA_VISIBLE_WIDTH = 9'd320;
+localparam [8:0] VGA_HB_END = 9'd381;
+localparam [8:0] VGA_VISIBLE_HEIGHT = 9'd240;
+localparam [8:0] VGA_VB_END = 9'd262;
 
 wire _hb;
 wire _vb;
@@ -82,8 +84,10 @@ wire [8:0] vcnt;
 
 // Display timing module from JTFRAME
 jtframe_vtimer #(
-	.HB_START(VGA_WIDTH - 1'b1),
-	.VB_START(VGA_HEIGHT - 1'b1)
+	.HB_START(VGA_VISIBLE_WIDTH - 1'b1),
+	.HB_END(VGA_HB_END - 1'b1),
+	.VB_START(VGA_VISIBLE_HEIGHT - 1'b1),
+	.VB_END(VGA_VB_END - 1'b1)
 ) vtimer 
 (
 	.clk(clk_24),
@@ -100,7 +104,7 @@ jtframe_vtimer #(
 
 // Millisecond timer
 wire  [15:0]	timer;
-generic_timer #(16,15,24000) ms_timer
+generic_timer #(16,15,24) ms_timer
 (
 	.clk(clk_24),
 	.reset(reset || (timer_cs && !cpu_wr_n)),
@@ -131,37 +135,38 @@ wire [7:0] music_data_out;
 wire pgrom_cs = cpu_addr[15] == 1'b0;
 // - Memory mapped input/output
 wire [7:0] memory_map_addr = cpu_addr[15:8];
-wire in0_cs = cpu_addr == 16'b1000000000000000;
-wire video_ctl_cs = cpu_addr == 16'b1000000000000001;
-wire joystick_cs = memory_map_addr == 8'b10000001;
-wire analog_l_cs = memory_map_addr == 8'b10000010;
-wire analog_r_cs = memory_map_addr == 8'b10000011;
-wire paddle_cs = memory_map_addr == 8'b1000100;
-wire spinner_cs = memory_map_addr == 8'b10000101;
-wire ps2_key_cs = memory_map_addr == 8'b10000110;
-wire ps2_mouse_cs = memory_map_addr == 8'b10000111;
-wire timestamp_cs = memory_map_addr == 8'b10001000;
-wire timer_cs = memory_map_addr == 8'b10001001;
-wire starfield1_cs = memory_map_addr == 8'b10001010 && cpu_addr[5:4] == 2'b00;
-wire starfield2_cs = memory_map_addr == 8'b10001010 && cpu_addr[5:4] == 2'b01;
-wire starfield3_cs = memory_map_addr == 8'b10001010 && cpu_addr[5:4] == 2'b10;
-wire system_pause_cs = cpu_addr == 16'b1000101000110000;
-wire system_menu_cs = cpu_addr == 16'b1000101000110001;
-wire sound_cs = cpu_addr[15:4] == 12'b100010110000;
-wire music_cs = cpu_addr[15:4] == 12'b100010110001;
+wire in0_cs = cpu_addr == 16'h8000;
+wire video_ctl_cs = cpu_addr == 16'h8001;
+wire timestamp_cs = cpu_addr >= 16'h8080 && cpu_addr < 16'h80A0;
+wire timer_cs = cpu_addr >= 16'h80C0 && cpu_addr < 16'h80D0;
+wire joystick_cs = cpu_addr >= 16'h8100 && cpu_addr < 16'h81C0;
+wire analog_l_cs = cpu_addr >= 16'h8200 && cpu_addr < 16'h8260;
+wire analog_r_cs = cpu_addr >= 16'h8280 && cpu_addr < 16'h82E0;
+wire paddle_cs = cpu_addr >= 16'h8300 && cpu_addr < 16'h8330;
+wire spinner_cs = cpu_addr >= 16'h8380 && cpu_addr < 16'h83E0;
+wire ps2_key_cs = cpu_addr >= 16'h8400 && cpu_addr < 16'h840C;
+wire ps2_mouse_cs = cpu_addr >= 16'h8480 && cpu_addr < 16'h84B0;
+wire starfield1_cs = cpu_addr >= 16'h8500 && cpu_addr < 16'h8510;
+wire starfield2_cs = cpu_addr >= 16'h8510 && cpu_addr < 16'h8520;
+wire starfield3_cs = cpu_addr >= 16'h8520 && cpu_addr < 16'h8530;
+wire system_pause_cs = cpu_addr == 16'h8530;
+wire system_menu_cs = cpu_addr == 16'h8531;
+wire sound_cs = cpu_addr >= 16'h8580 && cpu_addr < 16'h8590;
+wire music_cs = cpu_addr >= 16'h8590 && cpu_addr < 16'h8594;
 
-// - Casval (character map)
-wire chram_cs = cpu_addr[15:11] == 5'b10011;
-wire fgcolram_cs = cpu_addr[15:11] == 5'b10100;
-wire bgcolram_cs = cpu_addr[15:11] == 5'b10101;
-// - Comet (sprite engine)
-wire spriteram_cs = cpu_addr[15:11] == 5'b10110 && !spritecollisionram_cs;
-wire spritecollisionram_cs = memory_map_addr == 8'b10110100;
 // - Zechs (tile map)
-wire tilemapcontrol_cs = cpu_addr[15:2] == 14'b10001100000000;
-wire tilemapram_cs = cpu_addr >= 16'h8C10 && cpu_addr < 16'h8F10;
+wire tilemapcontrol_cs = cpu_addr >= 16'h8600 && cpu_addr < 16'h8610;
+wire tilemapram_cs = cpu_addr >= 16'h8610 && cpu_addr < 16'h8910;
+// - Casval (character map)
+wire chram_cs = cpu_addr >= 16'h9200 && cpu_addr < 16'h9A00;
+wire fgcolram_cs = cpu_addr >= 16'h9A00 && cpu_addr < 16'hA200;
+wire bgcolram_cs = cpu_addr >= 16'hA200 && cpu_addr < 16'hAA00;
+wire charpaletteram_cs = cpu_addr >= 16'hAA00 && cpu_addr < 16'hAE00;
+// - Comet (sprite engine)
+wire spriteram_cs = cpu_addr >= 16'hB000 && cpu_addr < 16'hB080;
+wire spritecollisionram_cs = cpu_addr >= 16'hB400 && cpu_addr < 16'hB404;
 // - CPU working RAM
-wire wkram_cs = cpu_addr[15:14] == 2'b11;
+wire wkram_cs = cpu_addr >= 16'hC000;
 
 // Video control output
 reg [7:0] video_control;
@@ -225,8 +230,9 @@ always @(posedge clk_24) begin
 	//if(sound_cs && !cpu_wr_n) $display("sound_cs %b %b", cpu_addr, cpu_dout);
 	//if(music_cs && !cpu_wr_n) $display("music_cs %b %b", cpu_addr, cpu_dout);
 	//if(tilemapcontrol_cs) $display("tilemapcontrol_cs addr=%x dout=%x din=%x wr=%b", cpu_addr, cpu_dout, tilemapcontrol_data_out, cpu_wr_n);
-	//if(tilemapram_cs  && !cpu_wr_n) $display("tilemapram_cs addr=%x dout=%x", cpu_addr, cpu_dout);
-	//if(timer_cs) $display("timer_cs wr=%b timer=%d   frame_time=%d  hcnt=%d  vcnt=%d", ~cpu_wr_n, timer, frame_timer, hcnt, vcnt);
+	//if(tilemapram_cs  && !cpu_wr_n) $display("tilemapram_cs addr=%x addr2=%x wraddr=%x dout=%x", cpu_addr, cpu_addr[TILEMAP_RAM_WIDTH-1:0], tilemapram_addr_wr, cpu_dout);
+	//if(timer_cs) $display("timer_cs wr=%b timer=%d addr=%d  frame_time=%d  hcnt=%d  vcnt=%d", ~cpu_wr_n, timer, cpu_addr, frame_timer, hcnt, vcnt);
+	//if(timer_cs && ~cpu_wr_n) $display("timer clear @ timer=%d frame_time=%d  hcnt=%d  vcnt=%d", timer, frame_timer, hcnt, vcnt);
 end
 
 // ROM data available to CPU
@@ -238,6 +244,7 @@ wire [7:0] wkram_data_out;
 wire [7:0] chram_data_out;
 wire [7:0] fgcolram_data_out;
 wire [7:0] bgcolram_data_out;
+wire [23:0] charpaletteram_data_out;
 
 // RAM data not available to CPU
 wire [7:0] chmap_data_out;
@@ -256,6 +263,7 @@ wire wkram_wr = !cpu_wr_n && wkram_cs;
 wire chram_wr = !cpu_wr_n && chram_cs;
 wire fgcolram_wr = !cpu_wr_n && fgcolram_cs;
 wire bgcolram_wr = !cpu_wr_n && bgcolram_cs;
+wire charpaletteram_wr = !cpu_wr_n && charpaletteram_cs;
 wire spriteram_wr = !cpu_wr_n && spriteram_cs;
 wire spritecollisionram_wr;
 wire tilemapcontrol_wr = !cpu_wr_n && tilemapcontrol_cs;
@@ -267,6 +275,7 @@ assign cpu_din = pgrom_cs ? pgrom_data_out :
 				 chram_cs ? chram_data_out :
 				 fgcolram_cs ? fgcolram_data_out :
 				 bgcolram_cs ? bgcolram_data_out :
+				//  charpaletteram_cs ? charpaletteram_data_out :
 				 spritecollisionram_cs ? {8{spritecollisionram_data_out_cpu}} :
 				 in0_cs ? in0_data_out :
 				 joystick_cs ? joystick_data_out :
@@ -329,6 +338,7 @@ wire		charmap_a;
 `ifndef DISABLE_CHARMAP
 // Casval - character map
 wire [11:0] chram_addr;
+wire [7:0] charpaletteram_addr_rd;
 wire [11:0] chrom_addr;
 charmap casval
 (
@@ -339,8 +349,10 @@ charmap casval
 	.chrom_data_out(chrom_data_out),
 	.fgcolram_data_out(fgcolram_data_out),
 	.bgcolram_data_out(bgcolram_data_out),
+	.charpaletteram_data_out(charpaletteram_data_out),
 	.chmap_data_out(chmap_data_out),
 	.chram_addr(chram_addr),
+	.charpaletteram_addr_rd(charpaletteram_addr_rd),
 	.chrom_addr(chrom_addr),
 	.r(charmap_r),
 	.g(charmap_g),
@@ -355,7 +367,7 @@ wire [7:0]	tilemap_g;
 wire [7:0]	tilemap_b;
 wire		tilemap_a;
 `ifndef DISABLE_TILEMAP
-localparam TILEMAP_ROM_WIDTH = 15;
+localparam TILEMAP_ROM_WIDTH = 17;
 localparam TILEMAP_RAM_WIDTH = 10;
 wire [TILEMAP_ROM_WIDTH-1:0]	tilemaprom_addr;
 wire [15:0]	tilemaprom_data_out;
@@ -375,6 +387,7 @@ tilemap #(
 	.hcnt(hcnt),
 	.vcnt(vcnt),
 	.hblank(VGA_HB),
+	.vblank(VGA_VB),
 	.addr(cpu_addr[1:0]),
 	.data_in(cpu_dout),
 	.write(tilemapcontrol_wr),
@@ -405,9 +418,8 @@ wire		spritecollisionram_data_out_cpu;
 `ifndef DISABLE_SPRITES
 localparam SPRITE_POSITION_WIDTH = 9;
 localparam SPRITE_RAM_WIDTH = 7;
-localparam SPRITE_ROM_WIDTH = 14;
 localparam SPRITE_COLRAM_WIDTH = 5;
-wire [SPRITE_ROM_WIDTH-1:0]	sprom_addr;
+wire [`SPRITE_ROM_WIDTH-1:0]	sprom_addr;
 wire [7:0]	spriterom_data_out;
 wire [SPRITE_RAM_WIDTH-1:0]	spriteram_addr;
 wire [7:0]	spriteram_data_out;
@@ -417,11 +429,11 @@ wire		spritecollisionram_data_in;
 wire [SPRITE_POSITION_WIDTH:0]	spritelbram_rd_addr;
 wire [SPRITE_POSITION_WIDTH:0]	spritelbram_wr_addr;
 wire		spritelbram_wr;
+wire		spritelbram_rd_wr;
 wire [15:0]	spritelbram_data_in;
 wire [15:0]	spritelbram_data_out;
 sprite_engine #(
 	.SPRITE_RAM_WIDTH(SPRITE_RAM_WIDTH),
-	.SPRITE_ROM_WIDTH(SPRITE_ROM_WIDTH),
 	.SPRITE_POSITION_WIDTH(SPRITE_POSITION_WIDTH),
 	.SPRITE_COLRAM_WIDTH(SPRITE_COLRAM_WIDTH)
 ) comet
@@ -445,6 +457,7 @@ sprite_engine #(
 	.sprom_addr(sprom_addr),
 	.palrom_addr(palrom_addr),
 	.spritelbram_rd_addr(spritelbram_rd_addr),
+	.spritelbram_rd_wr(spritelbram_rd_wr),
 	.spritelbram_wr_addr(spritelbram_wr_addr),
 	.spritelbram_wr(spritelbram_wr),
 	.spritecollisionram_wr(spritecollisionram_wr),
@@ -603,26 +616,39 @@ wire [23:0] rgb_charmap = { charmap_b, charmap_g, charmap_r };
 wire [23:0] rgb_tilemap = { tilemap_b, tilemap_g, tilemap_r };
 wire [23:0] rgb_sprite = { spr_b, spr_g, spr_r };
 
+
+wire [23:0] rgb_core = video_sprite_layer_high ? 
+							(spr_a ? rgb_sprite : charmap_a ? rgb_charmap : tilemap_a ? rgb_tilemap : rgb_starfield) :
+							(charmap_a ? rgb_charmap : spr_a ? rgb_sprite : tilemap_a ? rgb_tilemap : rgb_starfield);
+wire [23:0] rgb_final;
+
+
 `ifdef DEBUG_SPRITE_COLLISION
 // highlight sprite collisions
 wire [23:0] rgb_sprite_debug = {3{spritedebugram_data_out_a}};
-wire [23:0] rgb_final = spritedebugram_data_out_a ? rgb_sprite_debug : video_sprite_layer_high ? 
-							(spr_a ? rgb_sprite : charmap_a ? rgb_charmap : tilemap_a ? rgb_tilemap : rgb_starfield) :
-							(charmap_a ? rgb_charmap : spr_a ? rgb_sprite : tilemap_a ? rgb_tilemap : rgb_starfield);
-`endif
-`ifndef DEBUG_SPRITE_COLLISION
-wire [23:0] rgb_final = video_sprite_layer_high ? 
-							(spr_a ? rgb_sprite : charmap_a ? rgb_charmap : tilemap_a ? rgb_tilemap : rgb_starfield) :
-							(charmap_a ? rgb_charmap : spr_a ? rgb_sprite : tilemap_a ? rgb_tilemap : rgb_starfield);
+assign rgb_final = spritedebugram_data_out_a ? rgb_sprite_debug : rgb_core;
+
+`else
+	`ifdef ENABLE_DEBUG_RAMP
+		wire debug_ramp_active = joystick[6];
+		wire [9:0] ramp_x = (hcnt - 32);
+		wire [7:0] debug_ramp_gray = (ramp_x<256) ? ramp_x[7:0] : 8'b0;
+		wire [23:0] debug_ramp = vcnt<60 ?	{3{debug_ramp_gray}} :
+								vcnt<120 ?	{debug_ramp_gray, 8'b0, 8'b0} :
+								vcnt<180 ?	{8'b0, debug_ramp_gray, 8'b0} :
+											{8'b0, 8'b0, debug_ramp_gray};
+		assign rgb_final = debug_ramp_active ? debug_ramp : rgb_core;
+	`else
+		assign rgb_final = rgb_core;
+	`endif
 `endif
 
 wire de = ~(VGA_VB || VGA_HB);
 assign VGA_R = de ? rgb_final[7:0] : 8'b0;
 assign VGA_G = de ? rgb_final[15:8] : 8'b0;
 assign VGA_B = de ? rgb_final[23:16] : 8'b0;
-
-
-// Music player
+	
+	// Music player
 wire [9:0] music_audio_out;
 `ifndef DISABLE_MUSIC
 localparam MUSIC_ROM_WIDTH = 16;
@@ -706,61 +732,116 @@ dpram #(11,8, "font.hex") chrom
 	.q_b()
 );
 
-// Char index RAM - 0x9800 - 0x9FFF (0x0800 / 2048 bytes)
+// Char index RAM - 0x9200 - 0x9A00 (0x0800 / 2048 bytes)
+wire [15:0] chram_cpu_addr_wr = cpu_addr[15:0] - 16'h9200;
+reg [15:0] chram_addr_last;
+wire [15:0] chram_addr_rd = {5'b0, chram_addr[10:0]};
 dpram #(11,8) chram
 (
 	.clock_a(clk_24),
-	.address_a(cpu_addr[10:0]),
+	.address_a(chram_cpu_addr_wr[10:0]),
 	.wren_a(chram_wr),
 	.data_a(cpu_dout),
 	.q_a(chram_data_out),
 
 	.clock_b(clk_24),
-	.address_b(chram_addr[10:0]),
+	.address_b(chram_addr_rd[10:0]),
 	.wren_b(1'b0),
 	.data_b(),
 	.q_b(chmap_data_out)
 );
 
-// Char foreground color RAM - 0xA000 - 0xA7FF (0x0800 / 2048 bytes)
+// Char foreground color RAM - 0x9A00 - 0xA200 (0x0800 / 2048 bytes)
 dpram #(11,8) fgcolram
 (
 	.clock_a(clk_24),
-	.address_a(cpu_addr[10:0]),
+	.address_a(chram_cpu_addr_wr[10:0]),
 	.wren_a(fgcolram_wr),
 	.data_a(cpu_dout),
 	.q_a(),
 
 	.clock_b(clk_24),
-	.address_b(chram_addr[10:0]),
+	.address_b(chram_addr_rd[10:0]),
 	.wren_b(1'b0),
 	.data_b(),
 	.q_b(fgcolram_data_out)
 );
 
-// Char background color RAM - 0xA800 - 0xAFFF (0x0800 / 2048 bytes)
+// Char background color RAM - 0xA200 - 0xAA00 (0x0800 / 2048 bytes)
 dpram #(11,8) bgcolram
 (
 	.clock_a(clk_24),
-	.address_a(cpu_addr[10:0]),
+	.address_a(chram_cpu_addr_wr[10:0]),
 	.wren_a(bgcolram_wr),
 	.data_a(cpu_dout),
 	.q_a(),
 
 	.clock_b(clk_24),
-	.address_b(chram_addr[10:0]),
+	.address_b(chram_addr_rd[10:0]),
 	.wren_b(1'b0),
 	.data_b(),
 	.q_b(bgcolram_data_out)
 );
+
+// Char palette RAM - 0xAA00 - 0xAE00 (0x0400 / 1024 bytes)
+wire [15:0] charpaletteram_cpu_addr = cpu_addr[15:0] - 16'hAA00;
+wire [7:0] charpaletteram_data_out_r;
+wire [7:0] charpaletteram_data_out_g;
+wire [7:0] charpaletteram_data_out_b;
+assign charpaletteram_data_out = { charpaletteram_data_out_b, charpaletteram_data_out_g, charpaletteram_data_out_r };
+dpram #(8,8) charpaletteram_r
+(
+	.clock_a(clk_24),
+	.address_a(charpaletteram_cpu_addr[9:2]),
+	.wren_a(charpaletteram_wr && charpaletteram_cpu_addr[1:0] == 2'b00),
+	.data_a(cpu_dout),
+	.q_a(),
+
+	.clock_b(clk_24),
+	.address_b(charpaletteram_addr_rd),
+	.wren_b(1'b0),
+	.data_b(),
+	.q_b(charpaletteram_data_out_r)
+);
+dpram #(8,8) charpaletteram_g
+(
+	.clock_a(clk_24),
+	.address_a(charpaletteram_cpu_addr[9:2]),
+	.wren_a(charpaletteram_wr && charpaletteram_cpu_addr[1:0] == 2'b01),
+	.data_a(cpu_dout),
+	.q_a(),
+
+	.clock_b(clk_24),
+	.address_b(charpaletteram_addr_rd),
+	.wren_b(1'b0),
+	.data_b(),
+	.q_b(charpaletteram_data_out_g)
+);
+dpram #(8,8) charpaletteram_b
+(
+	.clock_a(clk_24),
+	.address_a(charpaletteram_cpu_addr[9:2]),
+	.wren_a(charpaletteram_wr && charpaletteram_cpu_addr[1:0] == 2'b10),
+	.data_a(cpu_dout),
+	.q_a(),
+
+	.clock_b(clk_24),
+	.address_b(charpaletteram_addr_rd),
+	.wren_b(1'b0),
+	.data_b(),
+	.q_b(charpaletteram_data_out_b)
+);
+
+
 `endif
 
 `ifndef DISABLE_TILEMAP
-// Tilemap index RAM 
+// Tilemap index RAM
+wire [15:0] tilemapram_addr_wr = cpu_addr - 16'h8610;
 dpram #(TILEMAP_RAM_WIDTH,8) tilemapram
 (
 	.clock_a(clk_24),
-	.address_a(cpu_addr[TILEMAP_RAM_WIDTH-1:0] - {{TILEMAP_RAM_WIDTH-5{1'b0}},5'h10}),
+	.address_a(tilemapram_addr_wr[TILEMAP_RAM_WIDTH-1:0]),
 	.wren_a(tilemapram_wr),
 	.data_a(cpu_dout),
 	.q_a(),
@@ -778,7 +859,6 @@ dpram_w1r2 #(TILEMAP_ROM_WIDTH,8, "tilemap.hex") tilemaprom
 	.address_a(dn_addr[TILEMAP_ROM_WIDTH-1:0]),
 	.wren_a(tilemaprom_wr),
 	.data_a(dn_data),
-
 	.clock_b(clk_24),
 	.address_b(tilemaprom_addr),
 	.q_b(tilemaprom_data_out)
@@ -787,10 +867,11 @@ dpram_w1r2 #(TILEMAP_ROM_WIDTH,8, "tilemap.hex") tilemaprom
 
 `ifndef DISABLE_SPRITES
 // Sprite RAM - 0xB000 - 0xB07F (0x0080 / 128 bytes)
+wire [15:0] spriteram_addr_wr = cpu_addr - 16'h9200;
 dpram #(SPRITE_RAM_WIDTH,8) spriteram
 (
 	.clock_a(clk_24),
-	.address_a(cpu_addr[SPRITE_RAM_WIDTH-1:0]),
+	.address_a(spriteram_addr_wr[SPRITE_RAM_WIDTH-1:0]),
 	.wren_a(spriteram_wr),
 	.data_a(cpu_dout),
 	.q_a(),
@@ -856,13 +937,13 @@ dpram #(SPRITE_POSITION_WIDTH+1,16) spritelbram
 
 	.clock_b(clk_24),
 	.address_b(spritelbram_rd_addr),
-	.wren_b(1'b0),
-	.data_b(),
+	.wren_b(spritelbram_rd_wr),
+	.data_b(16'b0),
 	.q_b(spritelbram_data_out)
 );
 
 // Sprite ROM - 0x11000 - 0x11800 (0x1000 / 4096 bytes)
-dpram #(SPRITE_ROM_WIDTH,8, "sprite.hex") spriterom
+dpram #(`SPRITE_ROM_WIDTH,8, "sprite.hex") spriterom
 (
 	.clock_a(clk_24),
 	.address_a(sprom_addr),
@@ -871,7 +952,7 @@ dpram #(SPRITE_ROM_WIDTH,8, "sprite.hex") spriterom
 	.q_a(spriterom_data_out),
 
 	.clock_b(clk_24),
-	.address_b(dn_addr[SPRITE_ROM_WIDTH-1:0]),
+	.address_b(dn_addr[`SPRITE_ROM_WIDTH-1:0]),
 	.wren_b(spriterom_wr),
 	.data_b(dn_data),
 	.q_b()

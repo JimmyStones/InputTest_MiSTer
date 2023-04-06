@@ -1,5 +1,6 @@
 
 #include "sim_video.h"
+#include "screengrab.h"
 
 #include <string>
 
@@ -26,6 +27,7 @@ int output_height = 512;
 int output_rotate = 0;
 bool output_vflip = false;
 bool output_usevsync = 1;
+bool output_capture = false;
 
 uint32_t* output_ptr = NULL;
 unsigned int output_size;
@@ -44,7 +46,7 @@ ImVec4 clear_color = ImVec4(0.25f, 0.35f, 0.40f, 0.80f);
 
 int count_pixel;
 int count_line;
-int count_frame;
+unsigned long count_frame;
 bool last_hblank;
 bool last_vblank;
 bool last_hsync;
@@ -333,6 +335,28 @@ int SimVideo::Initialise(const char* windowTitle) {
 	return 0;
 }
 
+std::wstring s2ws(const std::string& str)
+{
+	int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+	std::wstring wstrTo(size_needed, 0);
+	MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
+	return wstrTo;
+}
+
+unsigned long capture_frame;
+
+void SimVideo::Capture()
+{
+	capture_frame++;
+	char index[7];
+	snprintf(index, 7, "%06u", capture_frame);
+	std::wstring indexString = s2ws(index);
+	std::wstring filename = L"capture/cap_";
+	filename.append(indexString);
+	filename.append(L".png");
+	WriteFrameToImage(g_pd3dDeviceContext, texture, filename.c_str());
+}
+
 void SimVideo::UpdateTexture() {
 
 #ifdef WIN32
@@ -341,7 +365,10 @@ void SimVideo::UpdateTexture() {
 	// (D3D11_USAGE_DYNAMIC is for use with map / unmap.) ElectronAsh.
 	if (frame_ready) {
 		g_pd3dDeviceContext->UpdateSubresource(texture, 0, NULL, output_ptr, output_width * 4, 0);
+
+		if (count_frame > 1 && output_capture) { Capture(); }
 	}
+
 	// Rendering
 	ImGui::Render();
 	g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);

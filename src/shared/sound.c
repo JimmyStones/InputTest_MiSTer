@@ -19,6 +19,7 @@
 	with this program. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================*/
 
+#ifndef DISABLE_SOUND
 #include "sys.h"
 #include "sound.h"
 
@@ -44,3 +45,5 @@ void set_sound_volume(unsigned char volume)
 	// Write sample volume
 	sndram[12] = volume;
 }
+
+#endif

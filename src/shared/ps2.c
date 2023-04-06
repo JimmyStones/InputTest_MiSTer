@@ -161,9 +161,9 @@ char kbd_ascii = 0;
 
 char mse_lastclock = 0;
 bool mse_changed = 1;
-signed char mse_x;
-signed char mse_y;
-signed char mse_w;
+signed short mse_x;
+signed short mse_y;
+signed short mse_w;
 char mse_button1;
 char mse_button2;
 
@@ -238,10 +238,12 @@ void handle_ps2()
 	if (mse_clock != mse_lastclock)
 	{
 		mse_changed = 1;
-		mse_button1 = CHECK_BIT(ps2_mouse[0],0);
-		mse_button2 = CHECK_BIT(ps2_mouse[0],1);
-		mse_x = ps2_mouse[1];
-		mse_y = ps2_mouse[2];
+		mse_button1 = ps2_mouse[0];
+		mse_button2 = ps2_mouse[5];
+		//mse_x = ps2_mouse[1];
+		//mse_y = ps2_mouse[2];
+		mse_x = CHECK_BIT(mse_button1, 4) ? -(255-ps2_mouse[1]) : ps2_mouse[1];
+		mse_y = CHECK_BIT(mse_button1, 5) ? -(255-ps2_mouse[2]) : ps2_mouse[2];
 		mse_w = ps2_mouse[4];
 	}
 	mse_lastclock = mse_clock;

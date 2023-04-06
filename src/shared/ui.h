@@ -24,7 +24,7 @@
 extern char asc_0;
 extern char asc_1;
 
-#define transparent_char 0b11000111
+#define transparent_char 0xFF
 
 #define char_corner_round_tl 149
 #define char_corner_round_tr 137
@@ -36,6 +36,15 @@ extern char asc_1;
 #define char_dot 27
 #define char_cross 155
 
+#define colour_cga_black 0
+#define colour_cga_darkcyan 3
+#define colour_cga_darkred 4
+#define colour_cga_lightcyan 11
+#define colour_cga_lightred 12
+#define colour_cga_yellow 14
+#define colour_cga_white 15
+
+
 // Set all character RAM to specified character
 extern void clear_chars(char c);
 
@@ -44,6 +53,15 @@ extern void clear_char_area(char c, unsigned char tx, unsigned char ty, unsigned
 
 // Set all character background colours to specified
 extern void clear_bgcolor(char color);
+
+// Set character palette entry
+void set_char_palette(unsigned char index, unsigned char r, unsigned char g, unsigned char b);
+
+// Set default CGA palette
+void set_default_char_palette();
+
+// Write rotating log
+extern void write_log_uchar(const char *format, unsigned char data);
 
 // Write string to character RAM
 extern void write_string(const char *string, char color, unsigned char x, unsigned char y);

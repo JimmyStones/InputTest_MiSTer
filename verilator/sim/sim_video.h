@@ -19,6 +19,7 @@ public:
 	int output_height;
 	int output_rotate;
 	bool output_vflip;
+	bool output_capture;
 
 	int count_pixel;
 	int count_line;
@@ -35,6 +36,7 @@ public:
 
 	SimVideo(int width, int height, int rotate);
 	~SimVideo();
+	void Capture();
 	void UpdateTexture();
 	void CleanUp();
 	void StartFrame();

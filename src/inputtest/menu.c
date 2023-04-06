@@ -23,6 +23,7 @@
 #include "../shared/ps2.h"
 #include "menu.h"
 #include "inputtester_sys.h"
+#include "inputtester_ui.h"
 
 // Menu variables
 unsigned char menu_timer = 0;
@@ -104,19 +105,18 @@ void menu()
 	// As soon as vsync is detected start drawing screen updates
 	if (VBLANK_RISING)
 	{
-		//char maxsize = (menu_count * 3) + 1 + (menu_count % 2);
-		char maxsize = (menu_count * 3) + 2;
+		char maxsize = (menu_count * 3) + 1 + (menu_count % 2);
 
 		if (menu_timer < maxsize)
 		{
 			char oy1 = ((menu_timer) / 2);
 			char oy2 = oy1 + ((menu_count % 2) ? 0 : 1);
 			char my = menu_my;
-			panel_shaded(menu_tx, my - oy1, menu_bx, my + oy2, menu_panel_outline_high, menu_panel_outline_mid, menu_panel_outline_low);
+			panel_shaded(menu_tx, my - oy1, menu_bx, my + oy2, colour_menu_panel_outline_high, colour_menu_panel_outline_mid, colour_menu_panel_outline_low);
 			if (oy1 > 1)
 			{
 				fill(menu_tx + 1, my - (oy1 - 1), menu_bx - 1, my + (oy2 - 1), 0, 0);
-				fill_bgcol(menu_tx + 1, my - (oy1 - 1), menu_bx - 1, my + (oy2 - 1), menu_panel_back);
+				fill_bgcol(menu_tx + 1, my - (oy1 - 1), menu_bx - 1, my + (oy2 - 1), colour_menu_panel_back);
 			}
 			menu_timer++;
 			if (menu_timer == maxsize)
@@ -129,18 +129,19 @@ void menu()
 			if (menu_dirty)
 			{
 				char ty = menu_my - ((menu_count * 3) / 2);
-				if((menu_count % 2)==0) ty++;
 				for (char m = 0; m < menu_count; m++)
 				{
 					if (menu_index == m)
 					{
-						panel_shaded(menu_tx + 1, ty, menu_bx - 1, ty + 2, menu_sel_outline_high, menu_sel_outline_mid, menu_sel_outline_low);
-						write_string(menu_string[m], menu_sel_text, menu_tx + 2, ty + 1);
+						panel_shaded(menu_tx + 1, ty, menu_bx - 1, ty + 2, colour_menu_sel_outline_high, colour_menu_sel_outline_mid, colour_menu_sel_outline_low);
+						write_string(menu_string[m], colour_menu_sel_text, menu_tx + 2, ty + 1);
+						// fill_bgcol(menu_tx + 1, ty, menu_bx - 1, ty + 2, menu_sel_back);
 					}
 					else
 					{
-						panel_shaded(menu_tx + 1, ty, menu_bx - 1, ty + 2, menu_outline_high, menu_outline_mid, menu_outline_low);
-						write_string(menu_string[m], menu_text, menu_tx + 2, ty + 1);
+						panel_shaded(menu_tx + 1, ty, menu_bx - 1, ty + 2, colour_menu_outline_high, colour_menu_outline_mid, colour_menu_outline_low);
+						write_string(menu_string[m], colour_menu_text, menu_tx + 2, ty + 1);
+						// fill_bgcol(menu_tx + 1, ty, menu_bx - 1, ty + 2, menu_back);
 					}
 					ty += 3;
 				}

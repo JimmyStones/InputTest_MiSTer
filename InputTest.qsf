@@ -71,6 +71,7 @@ set_global_assignment -name VERILOG_MACRO "MISTER_FB=1"
 #set_global_assignment -name VERILOG_MACRO "DISABLE_STARS_2=1"
 #set_global_assignment -name VERILOG_MACRO "DISABLE_STARS_3=1"
 #set_global_assignment -name VERILOG_MACRO "DEBUG_SPRITE_COLLISION=1"
+set_global_assignment -name VERILOG_MACRO "SPRITE_ROM_WIDTH=14"
 
 source sys/sys.tcl
 source sys/sys_analog.tcl

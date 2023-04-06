@@ -155,10 +155,9 @@ int verilate() {
 }
 
 unsigned char mouse_clock = 0;
-unsigned char mouse_clock_reduce = 0;
 unsigned char mouse_buttons = 0;
-signed int mouse_x = 0;
-signed int mouse_y = 0;
+signed short mouse_x = 0;
+signed short mouse_y = 0;
 
 char spinner_toggle = 0;
 
@@ -210,15 +209,13 @@ int main(int argc, char** argv, char** env) {
 	input.SetMapping(input_right, SDL_SCANCODE_RIGHT);
 	input.SetMapping(input_down, SDL_SCANCODE_DOWN);
 	input.SetMapping(input_left, SDL_SCANCODE_LEFT);
-	input.SetMapping(input_a, SDL_SCANCODE_A);
-	input.SetMapping(input_b, SDL_SCANCODE_B);
-	input.SetMapping(input_x, SDL_SCANCODE_X);
-	input.SetMapping(input_y, SDL_SCANCODE_Y);
-	input.SetMapping(input_l, SDL_SCANCODE_L);
-	input.SetMapping(input_r, SDL_SCANCODE_E);
-	input.SetMapping(input_start, SDL_SCANCODE_1);
-	input.SetMapping(input_select, SDL_SCANCODE_2);
-	input.SetMapping(input_menu, SDL_SCANCODE_M);
+	input.SetMapping(input_fire1, SDL_SCANCODE_SPACE);
+	input.SetMapping(input_start_1, SDL_SCANCODE_1);
+	input.SetMapping(input_start_2, SDL_SCANCODE_2);
+	input.SetMapping(input_coin_1, SDL_SCANCODE_3);
+	input.SetMapping(input_coin_2, SDL_SCANCODE_4);
+	input.SetMapping(input_coin_3, SDL_SCANCODE_5);
+	input.SetMapping(input_pause, SDL_SCANCODE_P);
 #endif
 	// Setup video output
 	if (video.Initialise(windowTitle) == 1) { return 1; }
@@ -272,7 +269,7 @@ int main(int argc, char** argv, char** env) {
 		if (ImGui::Button("Multi Step")) { run_enable = 0; multi_step = 1; }
 		//ImGui::SameLine();
 		ImGui::SliderInt("Multi step amount", &multi_step_amount, 8, 1024);
-
+		ImGui::Checkbox("Capture video", &video.output_capture);
 		ImGui::End();
 
 		// Debug log window
@@ -298,8 +295,17 @@ int main(int argc, char** argv, char** env) {
 		//ImGui::Begin("BGCOLRAM Editor");
 		//mem_edit.DrawContents(&top->emu__DOT__system__DOT__bgcolram__DOT__mem, 2048, 0);
 		//ImGui::End();
+		//ImGui::Begin("CHARPALETTERAM_R Editor");
+		//mem_edit.DrawContents(&top->emu__DOT__system__DOT__charpaletteram_r__DOT__mem, 256, 0);
+		//ImGui::End();
+		//ImGui::Begin("CHARPALETTERAM_G Editor");
+		//mem_edit.DrawContents(&top->emu__DOT__system__DOT__charpaletteram_g__DOT__mem, 256, 0);
+		//ImGui::End();
+		//ImGui::Begin("CHARPALETTERAM_B Editor");
+		//mem_edit.DrawContents(&top->emu__DOT__system__DOT__charpaletteram_b__DOT__mem, 256, 0);
+		//ImGui::End();
 		//ImGui::Begin("Sprite RAM");
-		//mem_edit.DrawContents(&top->emu__DOT__system__DOT__spriteram__DOT__mem, 96, 0);
+		//mem_edit.DrawContents(&top->emu__DOT__system__DOT__spriteram__DOT__mem, 128, 0);
 		//ImGui::End();
 		//ImGui::Begin("Sprite Linebuffer RAM");
 		//mem_edit.DrawContents(&top->emu__DOT__system__DOT__spritelbram__DOT__mem, 1024, 0);
@@ -345,6 +351,9 @@ int main(int argc, char** argv, char** env) {
 		ImGui::SliderInt("Rotate", &video.output_rotate, -1, 1); ImGui::SameLine();
 		ImGui::Checkbox("Flip V", &video.output_vflip);
 		ImGui::Text("main_time: %d frame_count: %d sim FPS: %f", main_time, video.count_frame, video.stats_fps);
+
+		ImGui::Text("mouse_x: %d  mouse_y: %d", mouse_x, mouse_y);
+		ImGui::Text("mouse_buttons: %d", mouse_buttons);
 		//ImGui::Text("pixel: %06d line: %03d", video.count_pixel, video.count_line);
 
 		// Draw VGA output
@@ -358,7 +367,7 @@ int main(int argc, char** argv, char** env) {
 		ImGui::SetWindowPos(windowTitle_Audio, ImVec2(windowX, windowHeight), ImGuiCond_Once);
 		ImGui::SetWindowSize(windowTitle_Audio, ImVec2(windowWidth, 250), ImGuiCond_Once);
 
-		
+
 		//float vol_l = ((signed short)(top->AUDIO_L) / 256.0f) / 256.0f;
 		//float vol_r = ((signed short)(top->AUDIO_R) / 256.0f) / 256.0f;
 		//ImGui::ProgressBar(vol_l + 0.5f, ImVec2(200, 16), 0); ImGui::SameLine();
@@ -368,7 +377,7 @@ int main(int argc, char** argv, char** env) {
 		if (run_enable) {
 			audio.CollectDebug((signed short)top->AUDIO_L, (signed short)top->AUDIO_R);
 		}
-		int channelWidth = (windowWidth / 2)  -16;
+		int channelWidth = (windowWidth / 2) - 16;
 		ImPlot::CreateContext();
 		if (ImPlot::BeginPlot("Audio - L", ImVec2(channelWidth, 220), ImPlotFlags_NoLegend | ImPlotFlags_NoMenus | ImPlotFlags_NoTitle)) {
 			ImPlot::SetupAxes("T", "A", ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoTickMarks, ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoTickMarks);
@@ -390,6 +399,7 @@ int main(int argc, char** argv, char** env) {
 		video.UpdateTexture();
 
 
+
 		// Pass inputs to sim
 
 		top->menu = input.inputs[input_menu];
@@ -401,55 +411,36 @@ int main(int argc, char** argv, char** env) {
 		}
 		top->joystick_1 = top->joystick_0;
 
-		/*top->joystick_analog_0 += 1;
-		top->joystick_analog_0 -= 256;*/
-		//top->paddle_0 += 1;
-		//if (input.inputs[0] || input.inputs[1]) {
-		//	spinner_toggle = !spinner_toggle;
-		//	top->spinner_0 = (input.inputs[0]) ? 16 : -16;
-		//	for (char b = 8; b < 16; b++) {
-		//		top->spinner_0 &= ~(1UL << b);
-		//	}
-		//	if (spinner_toggle) { top->spinner_0 |= 1UL << 8; }
-		//}
-
-
-		int acc = 8;
+		mouse_buttons = 0 | (input.inputs[4]);
+		int acc = 10;
 		int dec = 1;
 		int fric = 2;
 
 		if (input.inputs[input_left]) { mouse_x -= acc; }
 		else if (mouse_x < 0) { mouse_x += (dec + (-mouse_x / fric)); }
-
 		if (input.inputs[input_right]) { mouse_x += acc; }
 		else if (mouse_x > 0) { mouse_x -= (dec + (mouse_x / fric)); }
-
 		if (input.inputs[input_up]) { mouse_y += acc; }
 		else if (mouse_y > 0) { mouse_y -= (dec + (mouse_y / fric)); }
-
 		if (input.inputs[input_down]) { mouse_y -= acc; }
 		else if (mouse_y < 0) { mouse_y += (dec + (-mouse_y / fric)); }
 
-		int lim = 127;
+		int lim = 255;
 		if (mouse_x > lim) { mouse_x = lim; }
 		if (mouse_x < -lim) { mouse_x = -lim; }
 		if (mouse_y > lim) { mouse_y = lim; }
 		if (mouse_y < -lim) { mouse_y = -lim; }
 
-		top->joystick_l_analog_0 = mouse_x;
-		top->joystick_l_analog_0 |= mouse_y << 8;
-
 		unsigned char ps2_mouse1;
 		unsigned char ps2_mouse2;
-		int x = mouse_x;
-		mouse_buttons |= (x < 0) ? 0x10 : 0x00;
-		if (x < -255)
+		mouse_buttons |= (mouse_x < 0) ? 0x10 : 0x00;
+		if (mouse_x < -255)
 		{
 			// min possible value + overflow flag
 			mouse_buttons |= 0x40;
 			ps2_mouse1 = 1; // -255
 		}
-		else if (x > 255)
+		else if (mouse_x > 255)
 		{
 			// max possible value + overflow flag
 			mouse_buttons |= 0x40;
@@ -457,20 +448,19 @@ int main(int argc, char** argv, char** env) {
 		}
 		else
 		{
-			ps2_mouse1 = (char)x;
+			ps2_mouse1 = (char)mouse_x;
 		}
 
 		// ------ Y axis -----------
 		// store sign bit in first byte
-		int y = mouse_y;
-		mouse_buttons |= (y < 0) ? 0x20 : 0x00;
-		if (y < -255)
+		mouse_buttons |= (mouse_y < 0) ? 0x20 : 0x00;
+		if (mouse_y < -255)
 		{
 			// min possible value + overflow flag
 			mouse_buttons |= 0x80;
 			ps2_mouse2 = 1; // -255;
 		}
-		else if (y > 255)
+		else if (mouse_y > 255)
 		{
 			// max possible value + overflow flag
 			mouse_buttons |= 0x80;
@@ -478,7 +468,7 @@ int main(int argc, char** argv, char** env) {
 		}
 		else
 		{
-			ps2_mouse2 = (char)y;
+			ps2_mouse2 = (char)mouse_y;
 		}
 
 		unsigned long mouse_temp = mouse_buttons;
