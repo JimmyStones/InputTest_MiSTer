@@ -585,11 +585,11 @@ void inputtester_analog()
     }
 }
 
-#define mouse_div 8
-const unsigned int mouse_min_x = 16 * mouse_div;
-const unsigned int mouse_min_y = 16 * mouse_div;
-const unsigned int mouse_max_x = 656 * mouse_div;
-const unsigned int mouse_max_y = 496 * mouse_div;
+#define mouse_div 16
+const unsigned int mouse_min_x = 32 * mouse_div;
+const unsigned int mouse_min_y = 32 * mouse_div;
+const unsigned int mouse_max_x = 352 * mouse_div;
+const unsigned int mouse_max_y = 272 * mouse_div;
 
 // Advanced input tester state
 void inputtester_advanced()
