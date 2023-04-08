@@ -73,6 +73,10 @@ module starfield #(
         begin
             seed <= SEED;
             RST_CNT <= (H * V) - 1'b1;
+            vdirection <= 0;
+            vincrement = 0;
+            hdirection <= 0;
+            hincrement = 0;
         end
 
         // CPU write
@@ -97,7 +101,6 @@ module starfield #(
             
             if(sf_cnt == RST_CNT)
             begin
-                
                 htimer = htimer + hspeed_actual;
                 hincrement = 8'b0;
                 if(htimer >= 16'hFF)

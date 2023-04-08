@@ -367,7 +367,7 @@ wire [7:0]	tilemap_g;
 wire [7:0]	tilemap_b;
 wire		tilemap_a;
 `ifndef DISABLE_TILEMAP
-localparam TILEMAP_ROM_WIDTH = 17;
+localparam TILEMAP_ROM_WIDTH = 15;
 localparam TILEMAP_RAM_WIDTH = 10;
 wire [TILEMAP_ROM_WIDTH-1:0]	tilemaprom_addr;
 wire [15:0]	tilemaprom_data_out;
@@ -538,8 +538,8 @@ end
 wire 		sf_on1;
 wire [7:0]	sf_star1;
 starfield #(
-	.H(396),
-	.V(256),
+	.H({{13{1'b0}},VGA_HB_END}),
+	.V({{13{1'b0}},VGA_VB_END}),
 	.LEN(22),
 	.SEED(22'h1FFFFF),
 	.MASK(22'b0000111100001111000011),
@@ -561,8 +561,8 @@ wire 		sf_on2;
 wire [7:0]	sf_star2;
 `ifndef DISABLE_STARS_2
 starfield #(
-	.H(396),
-	.V(256),
+	.H({{12{1'b0}},VGA_HB_END}),
+	.V({{12{1'b0}},VGA_VB_END}),
 	.LEN(21),
 	.SEED(21'h1FFFF0),
 	.MASK(21'b000011110000111100001),
@@ -585,8 +585,8 @@ wire 		sf_on3;
 wire [7:0]	sf_star3;
 `ifndef DISABLE_STARS_3
 starfield #(
-	.H(396),
-	.V(256),
+	.H({{12{1'b0}},VGA_HB_END}),
+	.V({{12{1'b0}},VGA_VB_END}),
 	.LEN(21),
 	.SEED(21'h1FFF00),
 	.MASK(21'b000011110000111100001),
@@ -624,10 +624,9 @@ wire [23:0] rgb_final;
 
 
 `ifdef DEBUG_SPRITE_COLLISION
-// highlight sprite collisions
-wire [23:0] rgb_sprite_debug = {3{spritedebugram_data_out_a}};
-assign rgb_final = spritedebugram_data_out_a ? rgb_sprite_debug : rgb_core;
-
+	// highlight sprite collisions
+	wire [23:0] rgb_sprite_debug = {3{spritedebugram_data_out_a}};
+	assign rgb_final = spritedebugram_data_out_a ? rgb_sprite_debug : rgb_core;
 `else
 	`ifdef ENABLE_DEBUG_RAMP
 		wire debug_ramp_active = joystick[6];
